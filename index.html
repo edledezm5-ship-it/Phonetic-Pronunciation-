@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inglés Fácil: Pronunciación Latina</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Georgia', 'Times New Roman', serif; }
+    .sans { font-family: system-ui, -apple-system, sans-serif; }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    textarea:focus { outline: none; border-color: #f5a623 !important; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; }
+    .card { transition: border-color 0.2s; }
+    .card:hover { border-color: #f5a623; }
+    .tab-btn { transition: color 0.2s, border-color 0.2s; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e3355; border-radius: 3px; }
+
+    /* API Key Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 1rem;
+    }
+    .modal-box {
+      background: #0f1829; border: 1px solid #1e2d4a;
+      border-radius: 1rem; padding: 1.5rem; max-width: 480px; width: 100%;
+    }
+    .modal-box.light { background: #fff; border-color: #e0d5c5; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useEffect } = React;
+
+const POWER_TERMS = [
+  { en: "Voltage", ph: "vól-teiych" },
+  { en: "Transformer", ph: "trans-fór-mer" },
+  { en: "Circuit", ph: "sér-kit" },
+  { en: "Current", ph: "kér-rent" },
+  { en: "Resistance", ph: "re-sís-tens" },
+  { en: "Frequency", ph: "frí-kuen-si" },
+  { en: "Capacitor", ph: "ka-pá-si-tor" },
+  { en: "Generator", ph: "yé-ne-rei-tor" },
+  { en: "Substation", ph: "sáb-stei-shon" },
+  { en: "Efficiency", ph: "e-fí-shen-si" },
+  { en: "Conductor", ph: "kon-dák-tor" },
+  { en: "Inverter", ph: "in-vér-ter" },
+  { en: "Transistor", ph: "tran-sís-tor" },
+  { en: "Semiconductor", ph: "se-mi-kon-dák-tor" },
+  { en: "Transmission", ph: "trans-mí-shon" },
+  { en: "Distribution", ph: "dis-tri-biú-shon" },
+  { en: "Schedule", ph: "és-ke-yiul" },
+  { en: "Threshold", ph: "zrésh-jould" },
+  { en: "Maintenance", ph: "méin-te-nens" },
+  { en: "Equipment", ph: "i-kuíp-ment" },
+  { en: "Measurement", ph: "mé-zhur-ment" },
+  { en: "Protection", ph: "pro-ték-shon" },
+  { en: "Controller", ph: "kon-tról-er" },
+  { en: "Algorithm", ph: "ál-go-ri-dzem" },
+];
+
+const GUIDE_RULES = [
+  {
+    title: "La H inglesa → J española",
+    examples: [["Hello", "jelóu"], ["He", "ji"], ["Her", "jér"], ["How", "jáu"]],
+    note: "La H inglesa suena fuerte, como nuestra J"
+  },
+  {
+    title: "La TH → D o Z",
+    examples: [["The", "de"], ["This", "dis"], ["Think", "zínk"], ["Three", "zrí"]],
+    note: "La TH suave suena como D, la fuerte como Z"
+  },
+  {
+    title: "La W → U consonante",
+    examples: [["Work", "uórk"], ["Word", "uórd"], ["What", "uát"], ["With", "uíz"]],
+    note: "La W no existe en español, se escribe U"
+  },
+  {
+    title: "Vocales largas",
+    examples: [["Time", "táim"], ["Make", "méik"], ["Go", "góu"], ["Music", "miú-sik"]],
+    note: "Las vocales largas inglesas son diptongos"
+  },
+  {
+    title: "El acento tónico (tilde)",
+    examples: [["Engineer", "en-yi-níer"], ["Voltage", "vól-teiych"], ["Circuit", "sér-kit"]],
+    note: "La tilde siempre marca la sílaba más fuerte"
+  },
+];
+
+const EXAMPLES = ["Power Engineer", "Schedule", "Hello World", "Voltage Transformer", "Through the circuit", "Knowledge"];
+
+async function convertWithClaude(text, apiKey) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      messages: [{
+        role: "user",
+        content: `You are a phonetics expert helping Spanish speakers from Latin America (Colombia) pronounce English words.
+
+Rewrite the following English text using Spanish phonetics (Latino Spanish from Colombia/Latin America).
+
+Rules:
+- Use the Spanish "j" sound for English "h" (hello → jelóu)
+- Use "y" or "yi" for English "y" sound (yes → yés, engineer → en-yi-níer)
+- Use "sh" for the "sh" sound (she → shi)
+- Use "ch" for the "ch" sound
+- Use "d" or "z" for English "th" sounds (the → de, think → zínk, three → zrí)
+- Use "ou" for the long "o" sound (go → góu)
+- Use "ei" for the long "a" sound (make → méik)
+- Use "ai" for the long "i" sound (time → táim)
+- Use "iu" for the "you" sound (music → miú-sik)
+- Place an accent mark (tilde) on the stressed syllable
+- Separate syllables with hyphens
+- Use lowercase
+
+Return ONLY the phonetic transcription, nothing else. No explanations, no preamble.
+
+English text: "${text}"`
+      }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  return data.content[0].text.trim();
+}
+
+function ApiKeyModal({ darkMode, onSave }) {
+  const [key, setKey] = useState("");
+  const bg = darkMode ? "modal-box" : "modal-box light";
+  const textPrimary = darkMode ? "#f0e6c8" : "#1a1206";
+  const textSecondary = darkMode ? "#8fa3bf" : "#7a6840";
+  const inputStyle = {
+    width: "100%", padding: "0.6rem 0.8rem", borderRadius: "0.6rem",
+    border: `1px solid ${darkMode ? "#1e3355" : "#c8b99a"}`,
+    background: darkMode ? "#0a1220" : "#faf7f0",
+    color: textPrimary, fontFamily: "monospace", fontSize: "0.85rem",
+    marginTop: "0.5rem"
+  };
+  return (
+    <div className="modal-overlay">
+      <div className={bg}>
+        <h2 style={{ color: "#f5a623", fontStyle: "italic", fontSize: "1.2rem", marginBottom: "0.5rem" }}>
+          🔑 Ingresa tu API Key
+        </h2>
+        <p className="sans" style={{ color: textSecondary, fontSize: "0.85rem", marginBottom: "1rem", lineHeight: 1.5 }}>
+          Esta app usa la API de Claude (Anthropic) para convertir fonética.
+          Necesitas una API key de <strong style={{color: textPrimary}}>console.anthropic.com</strong>.
+          Tu key se guarda solo en este navegador y nunca se envía a ningún servidor externo.
+        </p>
+        <label className="sans" style={{ color: textSecondary, fontSize: "0.75rem", fontWeight: 600 }}>
+          ANTHROPIC API KEY
+        </label>
+        <input
+          type="password"
+          placeholder="sk-ant-..."
+          value={key}
+          onChange={e => setKey(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && key.trim() && onSave(key.trim())}
+          style={inputStyle}
+        />
+        <button
+          onClick={() => key.trim() && onSave(key.trim())}
+          disabled={!key.trim()}
+          className="sans"
+          style={{
+            marginTop: "1rem", width: "100%", padding: "0.7rem",
+            borderRadius: "0.6rem", border: "none",
+            background: key.trim() ? "#f5a623" : (darkMode ? "#1a2840" : "#e0d5c5"),
+            color: key.trim() ? "#080d1a" : (darkMode ? "#3d5475" : "#b0a080"),
+            fontWeight: 700, fontSize: "0.9rem"
+          }}
+        >
+          Guardar y continuar →
+        </button>
+        <p className="sans" style={{ color: textSecondary, fontSize: "0.72rem", marginTop: "0.75rem", textAlign: "center" }}>
+          Tu key se guarda en localStorage de tu navegador
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [input, setInput] = useState("");
+  const [phonetic, setPhonetic] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [darkMode, setDarkMode] = useState(true);
+  const [activeTab, setActiveTab] = useState("converter");
+  const [speaking, setSpeaking] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("anthropic_key") || "");
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const bg = darkMode ? "#080d1a" : "#f5f0e8";
+  const cardBg = darkMode ? "#0f1829" : "#ffffff";
+  const cardBorder = darkMode ? "#1e2d4a" : "#e0d5c5";
+  const textPrimary = darkMode ? "#f0e6c8" : "#1a1206";
+  const textSecondary = darkMode ? "#8fa3bf" : "#7a6840";
+  const inputBg = darkMode ? "#0a1220" : "#faf7f0";
+  const inputBorder = darkMode ? "#1e3355" : "#c8b99a";
+  const accent = "#f5a623";
+
+  const saveKey = (key) => {
+    localStorage.setItem("anthropic_key", key);
+    setApiKey(key);
+    setShowKeyModal(false);
+  };
+
+  const handleConvert = useCallback(async () => {
+    if (!input.trim()) return;
+    if (!apiKey) { setShowKeyModal(true); return; }
+    setLoading(true);
+    setError("");
+    setPhonetic("");
+    try {
+      const result = await convertWithClaude(input, apiKey);
+      setPhonetic(result);
+    } catch (err) {
+      setError("Error: " + (err.message || "Intenta de nuevo"));
+    } finally {
+      setLoading(false);
+    }
+  }, [input, apiKey]);
+
+  const handleSpeak = useCallback((rate = 0.85) => {
+    if (!input.trim() || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(input);
+    utt.lang = "en-US"; utt.rate = rate;
+    utt.onstart = () => setSpeaking(true);
+    utt.onend = () => setSpeaking(false);
+    window.speechSynthesis.speak(utt);
+  }, [input]);
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(phonetic).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  const cardStyle = {
+    background: cardBg, border: `1px solid ${cardBorder}`,
+    borderRadius: "1rem", padding: "1.25rem"
+  };
+
+  const btnSecondary = {
+    background: "transparent", border: `1px solid ${inputBorder}`,
+    color: textSecondary, borderRadius: "0.5rem",
+    padding: "0.4rem 0.75rem", fontSize: "0.78rem", fontFamily: "system-ui, sans-serif"
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: bg, color: textPrimary, transition: "background 0.3s, color 0.3s" }}>
+      {showKeyModal && <ApiKeyModal darkMode={darkMode} onSave={saveKey} />}
+
+      {/* Header */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: darkMode ? "rgba(8,13,26,0.95)" : "rgba(245,240,232,0.95)",
+        backdropFilter: "blur(8px)",
+        borderBottom: `1px solid ${cardBorder}`,
+        padding: "0.75rem 1rem"
+      }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontStyle: "italic", color: accent, fontSize: "1.3rem", fontWeight: "bold" }}>
+              Inglés Fácil
+            </div>
+            <div className="sans" style={{ color: textSecondary, fontSize: "0.72rem", marginTop: "1px" }}>
+              Pronunciación para Latinoamericanos
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              onClick={() => setShowKeyModal(true)}
+              className="sans"
+              style={{ ...btnSecondary, fontSize: "0.72rem" }}
+              title="Cambiar API Key"
+            >
+              🔑 API Key
+            </button>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="sans"
+              style={btnSecondary}
+            >
+              {darkMode ? "☀ Claro" : "☾ Oscuro"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <div style={{ borderBottom: `1px solid ${cardBorder}` }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", display: "flex" }}>
+          {[["converter","Convertidor"],["dictionary","Ing. Eléctrica"],["guide","Guía Rápida"]].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className="sans tab-btn"
+              style={{
+                padding: "0.75rem 1rem", fontSize: "0.85rem", background: "none",
+                border: "none", borderBottom: `2px solid ${activeTab === id ? accent : "transparent"}`,
+                color: activeTab === id ? accent : textSecondary,
+                fontWeight: activeTab === id ? 600 : 400
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <main style={{ maxWidth: 640, margin: "0 auto", padding: "1.5rem 1rem" }}>
+
+        {/* CONVERTER */}
+        {activeTab === "converter" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ textAlign: "center", paddingBottom: "0.5rem" }}>
+              <p className="sans" style={{ color: textSecondary, fontSize: "0.875rem" }}>
+                Escribe en inglés → Lee en español
+              </p>
+            </div>
+
+            {/* Input card */}
+            <div style={cardStyle}>
+              <label className="sans" style={{ color: textSecondary, fontSize: "0.72rem", fontWeight: 600, display: "block", marginBottom: "0.5rem" }}>
+                TEXTO EN INGLÉS
+              </label>
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleConvert(); }}
+                placeholder="Power Engineer, Schedule, Voltage..."
+                rows={3}
+                style={{
+                  width: "100%", background: inputBg, border: `1px solid ${inputBorder}`,
+                  borderRadius: "0.75rem", padding: "0.75rem 1rem", fontSize: "1rem",
+                  color: textPrimary, resize: "none", fontFamily: "system-ui, sans-serif",
+                  transition: "border-color 0.2s"
+                }}
+              />
+              <p className="sans" style={{ color: textSecondary, fontSize: "0.72rem", marginTop: "0.3rem" }}>
+                Ctrl+Enter para convertir
+              </p>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
+                <button
+                  onClick={handleConvert}
+                  disabled={loading || !input.trim()}
+                  className="sans"
+                  style={{
+                    flex: 1, padding: "0.75rem", borderRadius: "0.75rem", border: "none",
+                    background: (loading || !input.trim()) ? (darkMode ? "#1a2840" : "#e0d5c5") : accent,
+                    color: (loading || !input.trim()) ? (darkMode ? "#3d5475" : "#b0a080") : "#080d1a",
+                    fontWeight: 700, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem"
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spin" style={{ display:"inline-block", width:16, height:16, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%" }} />
+                      Convirtiendo…
+                    </>
+                  ) : "🔤 Convertir"}
+                </button>
+                <button
+                  onClick={() => handleSpeak(0.85)}
+                  disabled={!input.trim() || speaking}
+                  style={{ ...btnSecondary, padding: "0.75rem 1rem", fontSize: "1rem" }}
+                  title="Escuchar pronunciación real"
+                >
+                  {speaking ? "🔊…" : "🔊"}
+                </button>
+              </div>
+            </div>
+
+            {/* Result */}
+            {(phonetic || error) && (
+              <div style={{
+                ...cardStyle,
+                background: error ? (darkMode ? "#1a0a0a" : "#fff0f0") : cardBg,
+                borderColor: error ? (darkMode ? "#4a1515" : "#f0c0c0") : cardBorder
+              }}>
+                {error ? (
+                  <p className="sans" style={{ color: "#f87171", fontSize: "0.875rem" }}>{error}</p>
+                ) : (
+                  <>
+                    <p className="sans" style={{ color: textSecondary, fontSize: "0.72rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+                      PRONUNCIACIÓN EN ESPAÑOL
+                    </p>
+                    <p style={{
+                      fontSize: "clamp(1.6rem, 5vw, 2.2rem)", fontWeight: "bold",
+                      color: accent, lineHeight: 1.3, letterSpacing: "0.02em",
+                      fontStyle: "italic"
+                    }}>
+                      {phonetic}
+                    </p>
+                    <div style={{
+                      marginTop: "1rem", paddingTop: "1rem",
+                      borderTop: `1px solid ${cardBorder}`,
+                      display: "flex", gap: "0.5rem", flexWrap: "wrap"
+                    }}>
+                      <button onClick={() => handleSpeak(0.75)} style={btnSecondary}>🐢 Despacio</button>
+                      <button onClick={handleCopy} style={btnSecondary}>
+                        {copied ? "✅ Copiado" : "📋 Copiar"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Examples */}
+            {!phonetic && !error && (
+              <div style={cardStyle}>
+                <p className="sans" style={{ color: textSecondary, fontSize: "0.72rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+                  EJEMPLOS RÁPIDOS
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {EXAMPLES.map(ex => (
+                    <button
+                      key={ex}
+                      onClick={() => setInput(ex)}
+                      className="sans card"
+                      style={{
+                        padding: "0.4rem 0.75rem", borderRadius: "0.5rem",
+                        border: `1px solid ${cardBorder}`, background: "transparent",
+                        color: textSecondary, fontSize: "0.85rem"
+                      }}
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* DICTIONARY */}
+        {activeTab === "dictionary" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <div style={{ textAlign: "center", paddingBottom: "0.5rem" }}>
+              <h2 style={{ fontStyle: "italic", color: accent, fontSize: "1.15rem" }}>Ingeniería Eléctrica & de Potencia</h2>
+              <p className="sans" style={{ color: textSecondary, fontSize: "0.8rem", marginTop: "0.3rem" }}>
+                Términos pre-verificados — toca para practicar
+              </p>
+            </div>
+            {POWER_TERMS.map(({ en, ph }) => (
+              <div
+                key={en}
+                className="card"
+                onClick={() => { setInput(en); setActiveTab("converter"); }}
+                style={{
+                  ...cardStyle, display: "flex", alignItems: "center",
+                  justifyContent: "space-between", cursor: "pointer"
+                }}
+              >
+                <span className="sans" style={{ fontWeight: 500 }}>{en}</span>
+                <span style={{ fontStyle: "italic", color: accent, fontSize: "1.1rem" }}>{ph}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* GUIDE */}
+        {activeTab === "guide" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <div style={{ textAlign: "center", paddingBottom: "0.5rem" }}>
+              <h2 style={{ fontStyle: "italic", color: accent, fontSize: "1.15rem" }}>Guía de Pronunciación</h2>
+            </div>
+            {GUIDE_RULES.map(({ title, examples, note }) => (
+              <div key={title} style={cardStyle}>
+                <h3 className="sans" style={{ color: accent, fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.75rem" }}>{title}</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                  {examples.map(([en, ph]) => (
+                    <div key={en} style={{ background: darkMode ? "#080d1a" : "#f5f0e8", borderRadius: "0.5rem", padding: "0.5rem 0.75rem" }}>
+                      <p className="sans" style={{ color: textSecondary, fontSize: "0.72rem" }}>{en}</p>
+                      <p style={{ fontStyle: "italic", color: accent, fontSize: "1rem" }}>{ph}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="sans" style={{ color: textSecondary, fontSize: "0.78rem" }}>💡 {note}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+
+      <footer style={{ textAlign: "center", padding: "2rem 1rem", color: textSecondary }}>
+        <p className="sans" style={{ fontSize: "0.72rem" }}>
+          Powered by Claude AI · Para ingenieros colombianos 🇨🇴
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
